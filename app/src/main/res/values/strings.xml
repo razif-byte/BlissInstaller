@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">BlissOS Installer</string>
+    <string name="watermark_text">RazifAppStudios@nasadef</string>
+    <string name="watermark_url">https://nasadef.com.my</string>
+    <string name="bliss_official_doc_url">https://docs.blissos.org</string>
+    <string name="bliss_official_web_url">https://blissos.org</string>
+</resources>

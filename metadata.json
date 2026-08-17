@@ -1,0 +1,6 @@
+{
+  "name": "Bliss OS Redmi 9T Installer",
+  "description": "Cross-platform Bliss OS installer & Fastboot flasher guide for Redmi 9T with auto-device detection, automated backup, analytics dashboard, cloud sync, and AI assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
