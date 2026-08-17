@@ -32,6 +32,8 @@ fun FlashingWizardScreen(
     onExecuteNextStep: () -> Unit,
     onExecuteAutomated: () -> Unit,
     onTriggerBackup: () -> Unit,
+    onAutoOptimize: () -> Unit,
+    onViewFullDiagnostic: () -> Unit,
     onOpenExportReport: () -> Unit
 ) {
     LazyColumn(
@@ -41,6 +43,111 @@ fun FlashingWizardScreen(
             .testTag("flashing_wizard_screen"),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // Pre-Installation Diagnostic Status Bar (Battery & Storage Check)
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("wizard_pre_install_gate"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (uiState.deviceSpecs.allRequirementsMet)
+                        Color(0xFF10B981).copy(alpha = 0.12f)
+                    else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (uiState.deviceSpecs.allRequirementsMet) Color(0xFF10B981).copy(alpha = 0.5f)
+                    else MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (uiState.deviceSpecs.allRequirementsMet) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
+                                contentDescription = null,
+                                tint = if (uiState.deviceSpecs.allRequirementsMet) Color(0xFF10B981) else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = if (uiState.deviceSpecs.allRequirementsMet) "Status Pra-Pemasangan: Sedia" else "Pemeriksaan Pra-Pemasangan Diperlukan",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+
+                        TextButton(onClick = onViewFullDiagnostic) {
+                            Text("Perincian", fontSize = 11.sp)
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "🔋 Bateri: ${uiState.deviceSpecs.batteryLevel}% (${if (uiState.deviceSpecs.isBatterySufficient) "OK" else "<60%!"})",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (uiState.deviceSpecs.isBatterySufficient) Color(0xFF10B981) else Color(0xFFEF4444)
+                            )
+                        )
+                        Text(
+                            text = "💾 Storan: ${uiState.deviceSpecs.freeStorageFormatted} (Min 6GB)",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (uiState.deviceSpecs.isStorageSufficient) Color(0xFF10B981) else Color(0xFFEF4444)
+                            )
+                        )
+                        Text(
+                            text = "⚡ RAM: ${uiState.deviceSpecs.freeRamFormatted}",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
+
+                    if (!uiState.deviceSpecs.allRequirementsMet || uiState.autoOptimizeEcoModeActive) {
+                        Button(
+                            onClick = onAutoOptimize,
+                            enabled = !uiState.isOptimizing,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("wizard_auto_optimize_btn"),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (uiState.deviceSpecs.allRequirementsMet) MaterialTheme.colorScheme.primary else Color(0xFF10B981)
+                            )
+                        ) {
+                            if (uiState.isOptimizing) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Sedang mengoptimumkan ruang & memori...", fontSize = 12.sp)
+                            } else {
+                                Icon(Icons.Default.Bolt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    if (uiState.deviceSpecs.allRequirementsMet) "⚡ Jalankan Auto-Optimize Tambahan" else "⚡ Jalankan Auto-Optimize Sekarang (Padam Cache & Free RAM)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Fastboot Live Terminal View
         item {
             FastbootTerminalView(

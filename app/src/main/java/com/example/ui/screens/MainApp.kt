@@ -228,7 +228,9 @@ fun MainApp(viewModel: BlissViewModel) {
                         AppDestination.Home -> HomeScreen(
                             uiState = uiState,
                             onPlatformModeChange = { viewModel.setPlatformMode(it) },
-                            onReScanDevice = { viewModel.runAutoDeviceDetection() },
+                            onReScanDevice = { viewModel.runAutoDeviceDetection(autoOptimizeIfFailed = false) },
+                            onAutoOptimize = { viewModel.triggerAutoOptimizeApp() },
+                            onViewFullDiagnostic = { viewModel.toggleDiagnosticDialog(true) },
                             onNavigateToFlashing = { currentDestination = AppDestination.Flashing },
                             onNavigateToRoms = { currentDestination = AppDestination.Roms },
                             onNavigateToWindowsSuite = { currentDestination = AppDestination.WindowsSuite },
@@ -243,6 +245,8 @@ fun MainApp(viewModel: BlissViewModel) {
                             onExecuteNextStep = { viewModel.executeNextFastbootStep() },
                             onExecuteAutomated = { viewModel.executeAllFastbootStepsAutomated() },
                             onTriggerBackup = { viewModel.triggerAutoBackup() },
+                            onAutoOptimize = { viewModel.triggerAutoOptimizeApp() },
+                            onViewFullDiagnostic = { viewModel.toggleDiagnosticDialog(true) },
                             onOpenExportReport = { viewModel.openExportDialog("PDF") }
                         )
 
@@ -271,6 +275,27 @@ fun MainApp(viewModel: BlissViewModel) {
                     }
                 }
             }
+        }
+
+        // Pre-Installation Diagnostic Dialog (Detailed Battery & Storage Inspector)
+        if (uiState.showDiagnosticDialog) {
+            PreInstallationDiagnosticDialog(
+                specs = uiState.deviceSpecs,
+                diagnostics = uiState.preInstallDiagnostics,
+                isDiagnosing = uiState.isDiagnosing,
+                isOptimizing = uiState.isOptimizing,
+                onAutoOptimize = { viewModel.triggerAutoOptimizeApp() },
+                onReScan = { viewModel.runAutoDeviceDetection(autoOptimizeIfFailed = false) },
+                onDismiss = { viewModel.toggleDiagnosticDialog(false) }
+            )
+        }
+
+        // Optimization Result Dialog
+        if (uiState.showOptimizationDialog) {
+            OptimizationResultDialog(
+                result = uiState.lastOptimizationResult,
+                onDismiss = { viewModel.toggleOptimizationDialog(false) }
+            )
         }
 
         // Gemini AI Bottom Sheet

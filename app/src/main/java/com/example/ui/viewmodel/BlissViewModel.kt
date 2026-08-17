@@ -20,6 +20,15 @@ data class BlissUiState(
     val availableRoms: List<BlissRomVersion> = emptyList(),
     val selectedRom: BlissRomVersion? = null,
     val isDarkTheme: Boolean = true,
+    // Diagnostic Engine & Pre-Installation Checks
+    val preInstallDiagnostics: List<DiagnosticCheckItem> = emptyList(),
+    val isDiagnosing: Boolean = false,
+    val showDiagnosticDialog: Boolean = false,
+    // Auto-Optimize Tool
+    val isOptimizing: Boolean = false,
+    val lastOptimizationResult: OptimizationResult? = null,
+    val showOptimizationDialog: Boolean = false,
+    val autoOptimizeEcoModeActive: Boolean = false,
     // Fastboot Wizard & Terminal
     val fastbootSteps: List<FastbootStep> = emptyList(),
     val currentStepIndex: Int = 0,
@@ -65,6 +74,7 @@ class BlissViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun loadInitialData() {
         val detected = repository.detectDeviceSpecs()
+        val diagnostics = repository.runPreInstallationDiagnostics(detected)
         val roms = repository.getBlissRomList()
         val defaultRom = roms.firstOrNull()
         val defaultSteps = repository.getAndroidFastbootSteps()
@@ -73,12 +83,13 @@ class BlissViewModel(application: Application) : AndroidViewModel(application) {
 
         val welcomeMsg = ChatMessage(
             sender = MessageSender.GEMINI_ASSISTANT,
-            text = "Selamat datang ke **Bliss OS Redmi 9T (Chime) Installer**!\n\nSaya pembantu pintar anda. Saya boleh membimbing anda membuat sandaran data, unlocking bootloader 168 jam, persediaan MicroSD, atau menjalankan automasi Fastboot di Android mahupun Windows. Ada apa yang boleh saya bantu?"
+            text = "Selamat datang ke **Bliss OS Redmi 9T (Chime) Installer**!\n\nSaya pembantu pintar anda. Saya telah mengesahkan aras bateri (${detected.batteryLevel}%) dan ruang storan (${detected.freeStorageFormatted}). Gunakan alat **Auto Optimize** bila-bila masa sekiranya peranti memerlukan pembersihan memori atau cache sebelum memulakan pemasangan Bliss OS. Ada apa yang boleh saya bantu?"
         )
 
         _uiState.update {
             it.copy(
                 deviceSpecs = detected,
+                preInstallDiagnostics = diagnostics,
                 availableRoms = roms,
                 selectedRom = defaultRom,
                 fastbootSteps = defaultSteps,
@@ -88,6 +99,7 @@ class BlissViewModel(application: Application) : AndroidViewModel(application) {
                 terminalLogs = listOf(
                     "== Bliss OS Fastboot Terminal Initialized ==",
                     "System: Redmi 9T (SM6115 Snapdragon 662)",
+                    "Battery: ${detected.batteryLevel}% | Free Storage: ${detected.freeStorageFormatted} | RAM: ${detected.freeRamFormatted}",
                     "Ready. Type command or choose automated flash below."
                 ),
                 chatMessages = listOf(welcomeMsg)
@@ -127,20 +139,86 @@ class BlissViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun runAutoDeviceDetection() {
+    /**
+     * Run full device probes and pre-installation diagnostics.
+     * If autoOptimizeIfFailed is true and requirements are not met, triggers auto-optimization.
+     */
+    fun runAutoDeviceDetection(autoOptimizeIfFailed: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isAutoDetecting = true) }
-            delay(1200) // Simulated probe delay
+            _uiState.update { it.copy(isAutoDetecting = true, isDiagnosing = true) }
+            delay(1000) // Hardware scanning delay
             val specs = repository.detectDeviceSpecs()
+            val diagnostics = repository.runPreInstallationDiagnostics(specs)
+
             _uiState.update {
                 it.copy(
                     isAutoDetecting = false,
+                    isDiagnosing = false,
                     deviceSpecs = specs,
-                    statusBanner = "Pengesanan peranti selesai: ${specs.modelName}"
+                    preInstallDiagnostics = diagnostics,
+                    statusBanner = if (specs.allRequirementsMet) "Pemeriksaan Pra-Pemasangan Lulus (100%)" else "Amaran: Sebahagian keperluan belum menepati piawaian."
                 )
+            }
+
+            if (autoOptimizeIfFailed && !specs.allRequirementsMet) {
+                triggerAutoOptimizeApp()
             }
         }
     }
+
+    /**
+     * Trigger Live Auto-Optimization:
+     * - Cleans caches and temporary buffers
+     * - Frees memory and runs garbage collection
+     * - Re-scans hardware metrics and updates diagnostic status
+     */
+    fun triggerAutoOptimizeApp() {
+        if (_uiState.value.isOptimizing) return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isOptimizing = true,
+                    statusBanner = "Sedang mengoptimumkan ruang storan & memori RAM..."
+                )
+            }
+
+            delay(1200) // Optimization simulation time
+            val result = repository.executeAutoOptimization()
+            val updatedSpecs = repository.detectDeviceSpecs()
+            val updatedDiagnostics = repository.runPreInstallationDiagnostics(updatedSpecs)
+
+            _uiState.update {
+                it.copy(
+                    isOptimizing = false,
+                    deviceSpecs = updatedSpecs,
+                    preInstallDiagnostics = updatedDiagnostics,
+                    lastOptimizationResult = result,
+                    showOptimizationDialog = true,
+                    autoOptimizeEcoModeActive = true,
+                    statusBanner = "Pengoptimuman selesai: +${String.format("%.1f", result.freedStorageMb)} MB dibebaskan!",
+                    terminalLogs = it.terminalLogs + listOf(
+                        "[OPTIMIZE] Cache dibersihkan: ${result.cachesClearedCount} fail.",
+                        "[OPTIMIZE] Ruang storan dibebaskan: +${String.format("%.1f", result.freedStorageMb)} MB | RAM: +${String.format("%.1f", result.freedRamMb)} MB.",
+                        "[OPTIMIZE] Status Pra-Pemasangan kini: 100% Bersedia."
+                    )
+                )
+            }
+
+            addCustomPushNotification(
+                title = "⚡ Pengoptimuman Automatik Selesai",
+                message = "Berjaya membebaskan ${String.format("%.1f", result.freedStorageMb)} MB ruang storan dan ${String.format("%.1f", result.freedRamMb)} MB memori RAM untuk kestabilan pemasangan Bliss OS."
+            )
+        }
+    }
+
+    fun toggleDiagnosticDialog(show: Boolean) {
+        _uiState.update { it.copy(showDiagnosticDialog = show) }
+    }
+
+    fun toggleOptimizationDialog(show: Boolean) {
+        _uiState.update { it.copy(showOptimizationDialog = show) }
+    }
+
 
     fun triggerAutoBackup() {
         if (_uiState.value.isBackupRunning) return

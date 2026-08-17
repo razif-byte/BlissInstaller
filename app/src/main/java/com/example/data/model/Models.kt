@@ -12,7 +12,7 @@ enum class PlatformMode {
 }
 
 /**
- * Hardware specifications and diagnostic state of the target device
+ * Hardware specifications and real-time diagnostic state of the target device
  */
 data class DeviceSpecs(
     val modelName: String = "Xiaomi Redmi 9T",
@@ -23,10 +23,30 @@ data class DeviceSpecs(
     val storage: String = "64GB / 128GB UFS 2.1 / 2.2",
     val batteryLevel: Int = 88,
     val isCharging: Boolean = true,
-    val bootloaderStatus: BootloaderStatus = BootloaderStatus.LOCKED,
+    val batteryTemperature: Float = 31.2f,
+    val batteryHealth: String = "Baik (Good)",
+    val batteryVoltageMv: Int = 4150,
+    val powerSource: String = "Pengecas USB / AC",
+    val freeStorageBytes: Long = 18_253_611_008L, // ~17 GB
+    val totalStorageBytes: Long = 64_424_509_440L, // ~64 GB
+    val freeStorageFormatted: String = "17.0 GB",
+    val totalStorageFormatted: String = "64.0 GB",
+    val storageUsagePercentage: Float = 0.72f,
+    val isStorageSufficient: Boolean = true,
+    val isBatterySufficient: Boolean = true,
+    val freeRamBytes: Long = 2_147_483_648L, // ~2.0 GB
+    val totalRamBytes: Long = 4_294_967_296L, // ~4.0 GB
+    val freeRamFormatted: String = "2.0 GB",
+    val totalRamFormatted: String = "4.0 GB",
+    val isRamSufficient: Boolean = true,
+    val appCacheSizeBytes: Long = 48_234_496L, // ~46 MB
+    val appCacheSizeFormatted: String = "46.0 MB",
+    val bootloaderStatus: BootloaderStatus = BootloaderStatus.UNLOCKED,
     val usbDebuggingEnabled: Boolean = true,
     val fastbootConnected: Boolean = true,
-    val detectedOs: String = "Android 12 (MIUI 13 / HyperOS Compatible)"
+    val detectedOs: String = "Android 12 (MIUI 13 / HyperOS Compatible)",
+    val allRequirementsMet: Boolean = true,
+    val readinessScore: Int = 100 // 0 to 100%
 )
 
 enum class BootloaderStatus {
@@ -35,6 +55,42 @@ enum class BootloaderStatus {
     UNLOCKING_IN_PROGRESS,
     RELOCKED
 }
+
+/**
+ * Diagnostic Check Items for Pre-Installation Verification
+ */
+data class DiagnosticCheckItem(
+    val id: String,
+    val title: String,
+    val category: String, // "BATTERY", "STORAGE", "MEMORY", "SECURITY", "SYSTEM"
+    val currentValue: String,
+    val requiredThreshold: String,
+    val isPassed: Boolean,
+    val warningNote: String = "",
+    val iconType: DiagnosticIconType = DiagnosticIconType.BATTERY
+)
+
+enum class DiagnosticIconType {
+    BATTERY,
+    STORAGE,
+    RAM,
+    TEMPERATURE,
+    BOOTLOADER,
+    FASTBOOT_USB,
+    CPU_CHIPSET
+}
+
+/**
+ * Result returned after performing automatic app and device optimization
+ */
+data class OptimizationResult(
+    val freedStorageMb: Double,
+    val freedRamMb: Double,
+    val cachesClearedCount: Int,
+    val ecoModeEnabled: Boolean,
+    val message: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
 
 /**
  * Bliss OS ROM Catalog item
@@ -158,4 +214,7 @@ object AppBranding {
     const val BLISS_DOCS_URL = "https://docs.blissos.org"
     const val BLISS_OFFICIAL_URL = "https://blissos.org"
     const val REDMI_9T_CODENAME = "chime / citrus"
+    const val MINIMUM_STORAGE_REQUIRED_BYTES = 6_442_450_944L // 6.0 GB
+    const val MINIMUM_BATTERY_PERCENTAGE = 60
 }
+

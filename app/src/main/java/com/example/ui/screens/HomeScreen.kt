@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.PlatformMode
 import com.example.ui.components.DeviceDiagnosticCard
 import com.example.ui.components.MonthlyAnalyticsChart
+import com.example.ui.components.PreInstallationDiagnosticCard
 import com.example.ui.components.WatermarkFooter
 import com.example.ui.viewmodel.BlissUiState
 
@@ -31,6 +32,8 @@ fun HomeScreen(
     uiState: BlissUiState,
     onPlatformModeChange: (PlatformMode) -> Unit,
     onReScanDevice: () -> Unit,
+    onAutoOptimize: () -> Unit,
+    onViewFullDiagnostic: () -> Unit,
     onNavigateToFlashing: () -> Unit,
     onNavigateToRoms: () -> Unit,
     onNavigateToWindowsSuite: () -> Unit,
@@ -75,7 +78,19 @@ fun HomeScreen(
             }
         }
 
-        // Automatic Device Detection Card
+        // 1. Pre-Installation Diagnostic Tool Card (Battery & Storage Inspector)
+        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+            PreInstallationDiagnosticCard(
+                specs = uiState.deviceSpecs,
+                isDiagnosing = uiState.isDiagnosing,
+                isOptimizing = uiState.isOptimizing,
+                onRunDiagnostic = onReScanDevice,
+                onAutoOptimize = onAutoOptimize,
+                onViewFullDiagnostic = onViewFullDiagnostic
+            )
+        }
+
+        // 2. Automatic Device Detection Card
         Box(modifier = Modifier.padding(horizontal = 16.dp)) {
             DeviceDiagnosticCard(
                 specs = uiState.deviceSpecs,
